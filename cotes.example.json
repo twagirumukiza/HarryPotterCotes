@@ -1,0 +1,30 @@
+{
+  "exportedAt": "2026-10-05T14:00:00.000Z",
+  "note": "Exemple de fichier de cotes. Tu peux l’importer manuellement ou le générer via l’export de l’application.",
+  "figures": [
+    {
+      "id": "01",
+      "name": "Severus Snape",
+      "code": "VD390A",
+      "rarity": "standard",
+      "cote": {
+        "price": 3.50,
+        "prices": [3.00, 3.50, 4.00],
+        "updated": "2026-10-05T12:00:00.000Z",
+        "source": "manual"
+      }
+    },
+    {
+      "id": "11",
+      "name": "Harry Potter GOLD",
+      "code": "VT401",
+      "rarity": "gold",
+      "cote": {
+        "price": 14.99,
+        "prices": [12.00, 14.99, 18.00, 15.50],
+        "updated": "2026-10-05T12:05:00.000Z",
+        "source": "manual"
+      }
+    }
+  ]
+}
