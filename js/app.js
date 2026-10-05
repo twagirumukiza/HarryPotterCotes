@@ -1,36 +1,73 @@
 /**
- * HarryPotterCotes – Application de suivi de cote
- * Stockage local + liens de recherche marché
+ * HarryPotterCotes – Application de suivi de cote AUTOMATIQUE
+ * Aucune connexion requise. Les cotes se chargent depuis data/cotes.json
+ * (mis à jour par GitHub Actions) + possibilité de surcharge manuelle locale.
  */
 
-const STORAGE_KEY = "harrypottercotes_data_v1";
+const STORAGE_KEY = "harrypottercotes_manual_v2";
+const COTES_URL = "data/cotes.json";
 
 // État
-let cotes = {};          // { code: { price, prices[], updated, source } }
+let autoCotes = {};      // depuis data/cotes.json
+let manualCotes = {};    // surcharges locales (optionnel)
+let meta = { updatedAt: null, source: null };
 let currentEditCode = null;
 
 // ---------- Initialisation ----------
-document.addEventListener("DOMContentLoaded", () => {
-  loadFromStorage();
+document.addEventListener("DOMContentLoaded", async () => {
+  loadManualFromStorage();
+  await loadAutoCotes();
   renderGrid();
   updateStats();
   bindEvents();
   applyTheme();
 });
 
-// ---------- Stockage ----------
-function loadFromStorage() {
+// ---------- Chargement automatique ----------
+async function loadAutoCotes() {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) cotes = JSON.parse(raw);
+    const res = await fetch(COTES_URL + "?t=" + Date.now());
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    const data = await res.json();
+    autoCotes = data.cotes || {};
+    meta.updatedAt = data.updatedAt || null;
+    meta.source = data.source || "auto";
+    console.log("Cotes automatiques chargées :", Object.keys(autoCotes).length, "items");
   } catch (e) {
-    console.warn("Impossible de charger les cotes locales", e);
-    cotes = {};
+    console.warn("Impossible de charger data/cotes.json", e);
+    autoCotes = {};
   }
 }
 
-function saveToStorage() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(cotes));
+function loadManualFromStorage() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) manualCotes = JSON.parse(raw);
+  } catch (e) {
+    manualCotes = {};
+  }
+}
+
+function saveManualToStorage() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(manualCotes));
+}
+
+/** Retourne la cote effective (manuel > auto) */
+function getCote(code) {
+  if (manualCotes[code] && manualCotes[code].price != null) {
+    return { ...manualCotes[code], origin: "manual" };
+  }
+  if (autoCotes[code] && autoCotes[code].price != null) {
+    return {
+      price: autoCotes[code].price,
+      min: autoCotes[code].min,
+      max: autoCotes[code].max,
+      n: autoCotes[code].n,
+      updated: meta.updatedAt,
+      origin: "auto"
+    };
+  }
+  return null;
 }
 
 // ---------- Rendu ----------
@@ -43,7 +80,6 @@ function renderGrid() {
 
   let list = [...FIGURES];
 
-  // Filtre recherche
   if (search) {
     list = list.filter(f =>
       f.name.toLowerCase().includes(search) ||
@@ -52,44 +88,46 @@ function renderGrid() {
     );
   }
 
-  // Filtre rareté
   if (rarityFilter !== "all") {
     list = list.filter(f => f.rarity === rarityFilter);
   }
 
-  // Filtre catégorie
   if (categoryFilter !== "all") {
     list = list.filter(f => f.category === categoryFilter);
   }
 
-  // Tri
   list.sort((a, b) => {
     if (sortBy === "name") return a.name.localeCompare(b.name);
     if (sortBy === "price-asc") {
-      const pa = cotes[a.code]?.price ?? 9999;
-      const pb = cotes[b.code]?.price ?? 9999;
+      const pa = getCote(a.code)?.price ?? 9999;
+      const pb = getCote(b.code)?.price ?? 9999;
       return pa - pb;
     }
     if (sortBy === "price-desc") {
-      const pa = cotes[a.code]?.price ?? -1;
-      const pb = cotes[b.code]?.price ?? -1;
+      const pa = getCote(a.code)?.price ?? -1;
+      const pb = getCote(b.code)?.price ?? -1;
       return pb - pa;
     }
-    return a.id.localeCompare(b.id); // number
+    return a.id.localeCompare(b.id);
   });
 
   grid.innerHTML = list.map(f => createCard(f)).join("");
 }
 
 function createCard(fig) {
-  const cote = cotes[fig.code];
+  const cote = getCote(fig.code);
   const hasPrice = cote && cote.price != null;
-  const priceDisplay = hasPrice
-    ? `${cote.price.toFixed(2)} €`
-    : "— €";
-  const meta = hasPrice
-    ? `MAJ ${formatDate(cote.updated)} · ${cote.prices?.length || 1} obs.`
-    : "Aucune observation";
+  const priceDisplay = hasPrice ? Number(cote.price).toFixed(2) + " €" : "— €";
+
+  let metaText = "Aucune donnée";
+  if (hasPrice) {
+    const origin = cote.origin === "manual" ? "✏️ manuel" : "⚡ auto";
+    const range = (cote.min != null && cote.max != null)
+      ? " · " + cote.min.toFixed(1) + "–" + cote.max.toFixed(1) + " €"
+      : "";
+    const n = cote.n ? " · " + cote.n + " obs." : "";
+    metaText = origin + range + n;
+  }
 
   return `
     <article class="card" data-code="${fig.code}">
@@ -104,14 +142,14 @@ function createCard(fig) {
         </span>
         <div class="card-price">
           <div class="price-value ${hasPrice ? "" : "unknown"}">${priceDisplay}</div>
-          <div class="price-meta">${meta}</div>
+          <div class="price-meta">${metaText}</div>
         </div>
         <div class="card-actions">
           <button class="btn btn-small btn-search" onclick="openMarketSearch('${fig.code}')">
-            🔍 Chercher
+            🔍 Vérifier
           </button>
           <button class="btn btn-small btn-edit" onclick="openEditModal('${fig.code}')">
-            ✏️ Saisir
+            ✏️ Corriger
           </button>
         </div>
       </div>
@@ -121,65 +159,56 @@ function createCard(fig) {
 
 function updateStats() {
   const total = FIGURES.length;
-  const withPrice = Object.values(cotes).filter(c => c.price != null).length;
-  const prices = Object.values(cotes).filter(c => c.price != null).map(c => c.price);
-  const avg = prices.length ? (prices.reduce((a, b) => a + b, 0) / prices.length) : null;
+  let withPrice = 0;
+  const prices = [];
 
-  const lastUpdate = Object.values(cotes)
-    .map(c => c.updated)
-    .filter(Boolean)
-    .sort()
-    .pop();
+  FIGURES.forEach(f => {
+    const c = getCote(f.code);
+    if (c && c.price != null) {
+      withPrice++;
+      prices.push(c.price);
+    }
+  });
 
-  document.getElementById("stat-total").textContent = `${withPrice}/${total}`;
-  document.getElementById("stat-updated").textContent = lastUpdate
-    ? formatDate(lastUpdate)
+  const avg = prices.length ? prices.reduce((a, b) => a + b, 0) / prices.length : null;
+
+  document.getElementById("stat-total").textContent = withPrice + "/" + total;
+  document.getElementById("stat-updated").textContent = meta.updatedAt
+    ? formatDate(meta.updatedAt)
     : "—";
   document.getElementById("stat-avg").textContent = avg
-    ? `${avg.toFixed(2)} €`
+    ? avg.toFixed(2) + " €"
     : "—";
 }
 
-// ---------- Recherche marché ----------
+// ---------- Recherche marché (vérification manuelle) ----------
 function openMarketSearch(code) {
   const fig = FIGURES.find(f => f.code === code);
   if (!fig) return;
 
-  const query = encodeURIComponent(`Kinder Joy ${fig.name} Quidditch`);
-  const queryCode = encodeURIComponent(`Kinder Joy ${fig.code}`);
+  const query = encodeURIComponent("Kinder Joy " + fig.name + " " + fig.code);
+  const ebay = "https://www.ebay.fr/sch/i.html?_nkw=" + query + "&LH_Sold=1&LH_Complete=1";
+  const vinted = "https://www.vinted.fr/catalog?search_text=" + encodeURIComponent("Kinder Joy " + fig.name);
+  const leboncoin = "https://www.leboncoin.fr/recherche?text=" + encodeURIComponent("Kinder Joy " + fig.name);
 
-  // eBay FR (ventes terminées)
-  const ebay = `https://www.ebay.fr/sch/i.html?_nkw=${query}&_sacat=0&LH_Sold=1&LH_Complete=1&rt=nc&LH_PrefLoc=1`;
-  // Vinted
-  const vinted = `https://www.vinted.fr/catalog?search_text=${query}`;
-  // Leboncoin
-  const leboncoin = `https://www.leboncoin.fr/recherche?text=${query}`;
-
-  // Ouvre 3 onglets
   window.open(ebay, "_blank");
-  setTimeout(() => window.open(vinted, "_blank"), 300);
-  setTimeout(() => window.open(leboncoin, "_blank"), 600);
-
-  // Propose ensuite de saisir
-  setTimeout(() => {
-    if (confirm(`Les recherches pour « ${fig.name} » sont ouvertes.\n\nVeux-tu saisir les prix observés maintenant ?`)) {
-      openEditModal(code);
-    }
-  }, 1000);
+  setTimeout(() => window.open(vinted, "_blank"), 250);
+  setTimeout(() => window.open(leboncoin, "_blank"), 500);
 }
 
-// ---------- Modal saisie ----------
+// ---------- Modal correction manuelle (optionnel) ----------
 function openEditModal(code) {
   currentEditCode = code;
   const fig = FIGURES.find(f => f.code === code);
-  const cote = cotes[code] || {};
+  const autoPrice = autoCotes[code]?.price;
 
   document.getElementById("modal-title").textContent = fig.name;
-  document.getElementById("modal-code").textContent = `Code : ${fig.code}`;
+  document.getElementById("modal-code").textContent = "Code : " + fig.code + " · Cote auto : " + (autoPrice != null ? autoPrice.toFixed(2) + " €" : "—");
 
   const inputs = document.querySelectorAll(".price-input");
+  const existing = manualCotes[code]?.prices || [];
   inputs.forEach((inp, i) => {
-    inp.value = cote.prices && cote.prices[i] != null ? cote.prices[i] : "";
+    inp.value = existing[i] != null ? existing[i] : "";
   });
 
   updateModalCote();
@@ -198,18 +227,17 @@ function updateModalCote() {
 
   const el = document.getElementById("modal-cote");
   if (prices.length === 0) {
-    el.textContent = "—";
+    el.textContent = "— (la cote auto sera utilisée)";
     return;
   }
 
-  // Médiane
   prices.sort((a, b) => a - b);
   const mid = Math.floor(prices.length / 2);
   const median = prices.length % 2 !== 0
     ? prices[mid]
     : (prices[mid - 1] + prices[mid]) / 2;
 
-  el.textContent = `${median.toFixed(2)} €  (médiane de ${prices.length})`;
+  el.textContent = median.toFixed(2) + " €  (médiane de " + prices.length + ")";
 }
 
 function saveCote() {
@@ -220,24 +248,23 @@ function saveCote() {
     .filter(v => !isNaN(v) && v > 0);
 
   if (prices.length === 0) {
-    alert("Entre au moins un prix valide.");
-    return;
+    delete manualCotes[currentEditCode];
+  } else {
+    prices.sort((a, b) => a - b);
+    const mid = Math.floor(prices.length / 2);
+    const median = prices.length % 2 !== 0
+      ? prices[mid]
+      : (prices[mid - 1] + prices[mid]) / 2;
+
+    manualCotes[currentEditCode] = {
+      price: Math.round(median * 100) / 100,
+      prices,
+      updated: new Date().toISOString(),
+      origin: "manual"
+    };
   }
 
-  prices.sort((a, b) => a - b);
-  const mid = Math.floor(prices.length / 2);
-  const median = prices.length % 2 !== 0
-    ? prices[mid]
-    : (prices[mid - 1] + prices[mid]) / 2;
-
-  cotes[currentEditCode] = {
-    price: Math.round(median * 100) / 100,
-    prices: prices,
-    updated: new Date().toISOString(),
-    source: "manual"
-  };
-
-  saveToStorage();
+  saveManualToStorage();
   renderGrid();
   updateStats();
   closeModal();
@@ -259,9 +286,10 @@ function formatDate(iso) {
 function exportData() {
   const payload = {
     exportedAt: new Date().toISOString(),
+    autoUpdatedAt: meta.updatedAt,
     figures: FIGURES.map(f => ({
       ...f,
-      cote: cotes[f.code] || null
+      cote: getCote(f.code)
     }))
   };
 
@@ -269,9 +297,20 @@ function exportData() {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `harrypottercotes_${new Date().toISOString().slice(0, 10)}.json`;
+  a.download = "harrypottercotes_" + new Date().toISOString().slice(0, 10) + ".json";
   a.click();
   URL.revokeObjectURL(url);
+}
+
+async function refreshAuto() {
+  const btn = document.getElementById("btn-refresh");
+  btn.disabled = true;
+  btn.textContent = "⏳ Chargement…";
+  await loadAutoCotes();
+  renderGrid();
+  updateStats();
+  btn.disabled = false;
+  btn.textContent = "🔄 Actualiser";
 }
 
 // ---------- Thème ----------
@@ -296,12 +335,7 @@ function bindEvents() {
   document.getElementById("filter-category")?.addEventListener("change", renderGrid);
   document.getElementById("sort-by").addEventListener("change", renderGrid);
 
-  document.getElementById("btn-refresh").addEventListener("click", () => {
-    loadFromStorage();
-    renderGrid();
-    updateStats();
-  });
-
+  document.getElementById("btn-refresh").addEventListener("click", refreshAuto);
   document.getElementById("btn-export").addEventListener("click", exportData);
   document.getElementById("theme-toggle").addEventListener("click", toggleTheme);
 
@@ -313,7 +347,6 @@ function bindEvents() {
     inp.addEventListener("input", updateModalCote);
   });
 
-  // Fermer modal en cliquant dehors
   document.getElementById("price-modal").addEventListener("click", (e) => {
     if (e.target.id === "price-modal") closeModal();
   });
