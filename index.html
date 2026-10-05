@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HarryPotterCotes – Cote des Mini Figures Quidditch</title>
+  <meta name="description" content="Application pour suivre la cote (prix de marché) des figurines Kinder Joy Harry Potter Quidditch en temps réel.">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+  <header class="header">
+    <div class="header-inner">
+      <div class="logo">
+        <span class="logo-icon">⚡</span>
+        <div>
+          <h1>HarryPotterCotes</h1>
+          <p class="tagline">Cote des Mini Figures Quidditch</p>
+        </div>
+      </div>
+      <nav class="nav">
+        <button id="btn-refresh" class="btn btn-primary" title="Actualiser les cotes">
+          🔄 Actualiser
+        </button>
+        <button id="btn-export" class="btn btn-secondary" title="Exporter en JSON">
+          📥 Export
+        </button>
+        <button id="theme-toggle" class="btn btn-icon" title="Changer de thème">🌙</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="main">
+    <section class="hero">
+      <h2>Suivez la cote de vos figurines Kinder Joy</h2>
+      <p>
+        Interrogez le marché (eBay, Vinted, Leboncoin…) et obtenez le prix estimé 
+        de chaque mini figure Harry Potter Quidditch à l’instant <strong>t</strong>.
+      </p>
+      <div class="stats" id="global-stats">
+        <div class="stat">
+          <span class="stat-value" id="stat-total">—</span>
+          <span class="stat-label">Figurines</span>
+        </div>
+        <div class="stat">
+          <span class="stat-value" id="stat-updated">—</span>
+          <span class="stat-label">Dernière MAJ</span>
+        </div>
+        <div class="stat">
+          <span class="stat-value" id="stat-avg">—</span>
+          <span class="stat-label">Cote moyenne</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="controls">
+      <div class="search-box">
+        <input type="text" id="search-input" placeholder="Rechercher une figurine (Snape, VT396…)" autocomplete="off">
+      </div>
+      <div class="filters">
+        <select id="filter-rarity">
+          <option value="all">Toutes</option>
+          <option value="standard">Standard</option>
+          <option value="gold">Gold / Rare</option>
+          <option value="accessory">Accessoires</option>
+        </select>
+        <select id="filter-category">
+          <option value="all">Toutes séries</option>
+          <option value="quidditch">Quidditch 2024</option>
+          <option value="accessory">Accessoires</option>
+          <option value="other">Autres séries</option>
+        </select>
+        <select id="sort-by">
+          <option value="number">N° d’ordre</option>
+          <option value="name">Nom</option>
+          <option value="price-asc">Prix ↑</option>
+          <option value="price-desc">Prix ↓</option>
+        </select>
+      </div>
+    </section>
+
+    <section class="grid" id="figures-grid">
+      <!-- Cards générées par JS -->
+    </section>
+
+    <section class="how-it-works">
+      <h3>Comment ça marche ?</h3>
+      <div class="steps">
+        <div class="step">
+          <span class="step-num">1</span>
+          <p>Cliquez sur <strong>« Chercher la cote »</strong> d’une figurine</p>
+        </div>
+        <div class="step">
+          <span class="step-num">2</span>
+          <p>Des onglets s’ouvrent vers eBay, Vinted et Leboncoin pré-remplis</p>
+        </div>
+        <div class="step">
+          <span class="step-num">3</span>
+          <p>Entrez les prix observés → l’app calcule la médiane automatiquement</p>
+        </div>
+        <div class="step">
+          <span class="step-num">4</span>
+          <p>Les cotes sont sauvegardées localement + exportables</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <p>
+      Application dédiée aux collectionneurs · 
+      Données issues du marché secondaire · 
+      <a href="https://twagirumukiza.github.io/HarryPotterPops/" target="_blank" rel="noopener">Site original</a>
+    </p>
+    <p class="credit">HarryPotterCotes · Open Source · 2026</p>
+  </footer>
+
+  <!-- Modal pour saisir les prix -->
+  <div id="price-modal" class="modal hidden">
+    <div class="modal-content">
+      <button class="modal-close" id="modal-close">✕</button>
+      <h3 id="modal-title">Saisir les prix observés</h3>
+      <p class="modal-subtitle" id="modal-code"></p>
+      
+      <div class="price-inputs">
+        <label>Prix 1 (€) <input type="number" step="0.01" min="0" class="price-input" placeholder="3.50"></label>
+        <label>Prix 2 (€) <input type="number" step="0.01" min="0" class="price-input" placeholder="4.00"></label>
+        <label>Prix 3 (€) <input type="number" step="0.01" min="0" class="price-input" placeholder="2.80"></label>
+        <label>Prix 4 (€) <input type="number" step="0.01" min="0" class="price-input" placeholder=""></label>
+        <label>Prix 5 (€) <input type="number" step="0.01" min="0" class="price-input" placeholder=""></label>
+      </div>
+
+      <div class="modal-result" id="modal-result">
+        <span>Cote estimée : <strong id="modal-cote">—</strong></span>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn btn-secondary" id="modal-cancel">Annuler</button>
+        <button class="btn btn-primary" id="modal-save">Enregistrer la cote</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/figures.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
