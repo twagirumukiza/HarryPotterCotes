@@ -186,14 +186,29 @@ function openMarketSearch(code) {
   const fig = FIGURES.find(f => f.code === code);
   if (!fig) return;
 
-  const query = encodeURIComponent("Kinder Joy " + fig.name + " " + fig.code);
-  const ebay = "https://www.ebay.fr/sch/i.html?_nkw=" + query + "&LH_Sold=1&LH_Complete=1";
-  const vinted = "https://www.vinted.fr/catalog?search_text=" + encodeURIComponent("Kinder Joy " + fig.name);
-  const leboncoin = "https://www.leboncoin.fr/recherche?text=" + encodeURIComponent("Kinder Joy " + fig.name);
+  const qName = "Kinder Joy " + fig.name;
+  const qFull = qName + " " + fig.code;
 
-  window.open(ebay, "_blank");
-  setTimeout(() => window.open(vinted, "_blank"), 250);
-  setTimeout(() => window.open(leboncoin, "_blank"), 500);
+  const urls = [
+    // Europe / FR
+    "https://www.ebay.fr/sch/i.html?_nkw=" + encodeURIComponent(qFull) + "&LH_Sold=1&LH_Complete=1",
+    "https://www.vinted.fr/catalog?search_text=" + encodeURIComponent(qName),
+    "https://www.leboncoin.fr/recherche?text=" + encodeURIComponent(qName),
+    // Amazon FR + Amazon JP (Asie)
+    "https://www.amazon.fr/s?k=" + encodeURIComponent(qName),
+    "https://www.amazon.co.jp/s?k=" + encodeURIComponent(qName),
+    // Coleka – page collection + recherche
+    "https://www.coleka.com/fr/kinder-surprise/series-secondaires-demontables/series-vt/kinder-joy-funko-harry-potter_r38251",
+    "https://www.coleka.com/fr/search?q=" + encodeURIComponent(qFull),
+    // Sites asiatiques
+    "https://jp.mercari.com/search?keyword=" + encodeURIComponent(qName),
+    "https://auctions.yahoo.co.jp/search/search?p=" + encodeURIComponent(qName)
+  ];
+
+  // Ouvre les onglets avec un léger décalage (évite le blocage pop-up)
+  urls.forEach((url, i) => {
+    setTimeout(() => window.open(url, "_blank"), i * 180);
+  });
 }
 
 // ---------- Modal correction manuelle (optionnel) ----------
