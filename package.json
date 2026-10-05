@@ -1,0 +1,13 @@
+{
+  "name": "harrypottercotes",
+  "version": "2.0.0",
+  "description": "Cote automatique des mini-figurines Kinder Joy Harry Potter – sans connexion",
+  "private": true,
+  "scripts": {
+    "update-cotes": "node scripts/update-cotes.js"
+  },
+  "dependencies": {
+    "cheerio": "^1.0.0",
+    "node-fetch": "^2.7.0"
+  }
+}

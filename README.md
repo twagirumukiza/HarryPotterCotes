@@ -1,129 +1,90 @@
 # ⚡ HarryPotterCotes
 
-**Application dédiée au suivi de la cote (prix de marché) des mini-figurines Kinder Joy Harry Potter Quidditch.**
+**Application de suivi de cote des mini-figurines Kinder Joy Harry Potter — automatique, sans connexion.**
 
-Compatible **GitHub Pages** – aucune installation serveur nécessaire.
+Compatible **GitHub Pages**. Les utilisateurs n’ont **jamais** besoin de se connecter.
 
 ![Licence MIT](https://img.shields.io/badge/licence-MIT-green)
 ![GitHub Pages](https://img.shields.io/badge/deploy-GitHub%20Pages-blue)
+![Auto](https://img.shields.io/badge/cotes-automatiques-orange)
 
 ---
 
 ## ✨ Fonctionnalités
 
-- Liste complète des 14 figurines principales (codes VT / VD)
-- Recherche instantanée + filtres (Standard / Gold)
-- Bouton **« Chercher »** → ouvre automatiquement eBay (ventes terminées), Vinted et Leboncoin
-- Saisie manuelle des prix observés → calcul de la **médiane**
-- Stockage local (persistant dans le navigateur)
-- Export JSON des cotes
+- **50 figurines & accessoires** (liste complète de ton site)
+- **Cotes automatiques** chargées depuis `data/cotes.json`
+- Mise à jour quotidienne via **GitHub Actions** (aucune intervention)
+- Aucune inscription / connexion pour les visiteurs
+- Bouton « Vérifier » → ouvre eBay / Vinted / Leboncoin
+- Correction manuelle optionnelle (stockée localement)
+- Filtres : Standard / Gold / Accessoires / Séries
 - Mode clair / sombre
-- Design inspiré de l’univers Harry Potter
+- Export JSON
 
 ---
 
 ## 🚀 Installation sur GitHub (3 minutes)
 
-### 1. Créer le dépôt
+1. Crée un dépôt public `HarryPotterCotes`
+2. Pousse le contenu de ce dossier :
+   ```bash
+   git init
+   git add .
+   git commit -m "Initial commit – HarryPotterCotes auto"
+   git branch -M main
+   git remote add origin https://github.com/TON-USERNAME/HarryPotterCotes.git
+   git push -u origin main
+   ```
+3. Active **GitHub Pages** : Settings → Pages → Source = `main` / `/ (root)`
+4. (Optionnel) Active les Actions : Settings → Actions → Allow all actions
 
-```bash
-# Sur ta machine
-git clone https://github.com/TON-USERNAME/HarryPotterCotes.git
-# ou crée un nouveau repo vide sur GitHub puis :
-```
-
-1. Va sur [github.com/new](https://github.com/new)
-2. Nomme le dépôt `HarryPotterCotes` (ou ce que tu veux)
-3. Laisse-le **public**
-4. Ne coche **pas** “Add a README”
-
-### 2. Pousser le code
-
-```bash
-cd HarryPotterCotes          # le dossier que tu as téléchargé
-git init
-git add .
-git commit -m "Initial commit – HarryPotterCotes"
-git branch -M main
-git remote add origin https://github.com/TON-USERNAME/HarryPotterCotes.git
-git push -u origin main
-```
-
-### 3. Activer GitHub Pages
-
-1. Dans ton dépôt → **Settings** → **Pages**
-2. Source : **Deploy from a branch**
-3. Branch : `main` / folder : `/ (root)`
-4. Clique sur **Save**
-
-Après 1-2 minutes ton application sera en ligne :
-
+Ton app sera en ligne :
 ```
 https://TON-USERNAME.github.io/HarryPotterCotes/
 ```
 
 ---
 
-## 📂 Structure du projet
+## 🔄 Mise à jour automatique des cotes
+
+Un workflow GitHub Actions tourne **tous les jours à 6h UTC** et met à jour `data/cotes.json`.
+
+Tu peux aussi le lancer manuellement :
+- Onglet **Actions** → **Update Cotes Automatiques** → **Run workflow**
+
+> Les visiteurs de ton site n’ont rien à faire : ils voient toujours la dernière cote disponible.
+
+---
+
+## 📂 Structure
 
 ```
 HarryPotterCotes/
-├── index.html              # Page principale
-├── css/
-│   └── style.css           # Styles (clair + sombre)
+├── index.html
+├── css/style.css
 ├── js/
-│   ├── figures.js          # Liste des 14 figurines + codes
-│   └── app.js              # Logique (recherche, saisie, stockage)
+│   ├── figures.js      # 50 items
+│   └── app.js          # Logique auto
 ├── data/
-│   └── cotes.example.json  # Exemple de fichier de cotes
-└── README.md
+│   └── cotes.json      # ← source de vérité (auto-update)
+├── scripts/
+│   └── update-cotes.js # Script exécuté par Actions
+└── .github/workflows/
+    └── update-cotes.yml
 ```
 
 ---
 
-## 🪄 Utilisation
+## 🪄 Comment ça marche pour l’utilisateur final
 
-1. Clique sur **🔍 Chercher** d’une figurine  
-   → 3 onglets s’ouvrent (eBay sold, Vinted, Leboncoin)
-2. Note les prix que tu vois
-3. Clique sur **✏️ Saisir** et entre 1 à 5 prix
-4. L’application calcule automatiquement la **médiane**
-5. Les cotes restent sauvegardées dans ton navigateur
-6. Tu peux **exporter** le fichier JSON à tout moment
-
----
-
-## 🔄 Mettre à jour les figurines
-
-Édite simplement `js/figures.js` :
-
-```js
-{
-  id: "15",
-  name: "Nouvelle figurine",
-  code: "VT999",
-  rarity: "standard",   // ou "gold"
-  searchTerms: ["terme1", "terme2"]
-}
-```
-
-Puis commit + push.
-
----
-
-## 🛠️ Améliorations possibles (optionnel)
-
-- GitHub Action qui scrape eBay tous les jours et met à jour un `data/cotes.json`
-- Import d’un fichier JSON de cotes
-- Graphiques d’historique (Chart.js)
-- Mode “collection” (cocher ce que tu possèdes)
+1. Ouvre le site → les **50 cotes s’affichent immédiatement**
+2. Clique sur **🔍 Vérifier** si tu veux confirmer sur eBay/Vinted
+3. (Optionnel) Clique sur **✏️ Corriger** pour forcer un prix personnel
+4. C’est tout. Aucun compte, aucune connexion.
 
 ---
 
 ## 📜 Licence
 
-MIT – libre d’utilisation, modification et redistribution.
-
----
-
-Fait avec ⚡ pour les collectionneurs de la série **Kinder Joy × Harry Potter Quidditch**.
+MIT
